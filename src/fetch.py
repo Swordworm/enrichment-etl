@@ -9,6 +9,7 @@ import pandas as pd
 from slugify import slugify
 from sqlalchemy import insert
 from tenacity import retry, stop_after_attempt, wait_exponential
+from tqdm.asyncio import tqdm
 
 from src.brightdata import scrape_one
 from src.config import config
@@ -83,7 +84,7 @@ async def fetch_all(companies_df: pd.DataFrame) -> None:
                 tasks.append(_fetch_one_safe(client, semaphore, row, "linkedin"))
             if not has_cb and not has_li:
                 _log_status(row["name"], "both", "skipped", "no identifiers")
-        await asyncio.gather(*tasks)
+        await tqdm.gather(*tasks, desc="Fetching")
 
 
 async def run_fetch() -> None:
