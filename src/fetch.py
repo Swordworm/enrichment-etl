@@ -62,9 +62,19 @@ async def _fetch_one(
         _log_status(row["name"], source, "ok")
 
 
+def _is_cached(company_name: str, source: str) -> bool:
+    path = _RAW_DIR / f"{slugify(company_name)}_{source}.json"
+    if not path.exists():
+        return False
+    age_hours = (datetime.now(timezone.utc).timestamp() - path.stat().st_mtime) / 3600
+    return age_hours < config.raw_ttl_hours
+
+
 async def _fetch_one_safe(
     client: httpx.AsyncClient, semaphore: asyncio.Semaphore, row: pd.Series, source: str
 ) -> None:
+    if _is_cached(row["name"], source):
+        return
     try:
         await _fetch_one(client, semaphore, row, source)
     except Exception as exc:

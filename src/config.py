@@ -15,6 +15,7 @@ class Config(BaseSettings):
     brightdata_base_url: str = "https://api.brightdata.com/datasets/v3"
     poll_interval_s: int = 5
     fetch_concurrency: int = 5
+    raw_ttl_hours: int = 24
     db_path: Path = Field(default=_ROOT / "data" / "enrichment.db")
     xlsx_path: Path = Field(default=_ROOT / "data" / "input" / "candidate_take_home.xlsx")
 
