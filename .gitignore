@@ -5,3 +5,5 @@ __pycache__/
 *.pyo
 data/enrichment.db
 data/output/
+data/raw/*
+!data/raw/.gitkeep
