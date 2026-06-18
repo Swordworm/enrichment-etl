@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -6,6 +7,8 @@ import pandas as pd
 from slugify import slugify
 from sqlalchemy import insert, update
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 from src.db import canonical, engine
 
@@ -217,4 +220,4 @@ def _export_csv() -> None:
     with engine.connect() as conn:
         df = pd.read_sql("SELECT * FROM canonical", conn)
     df.to_csv(out_dir / "canonical.csv", index=False)
-    print(f"Exported {len(df)} records to data/output/canonical.csv")
+    logger.info("Exported %d records to data/output/canonical.csv", len(df))
