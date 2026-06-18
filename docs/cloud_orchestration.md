@@ -39,10 +39,6 @@ SELECT id FROM companies WHERE status = 'pending' LIMIT 100;
 
 For each returned ID, it publishes a message to the `enrichment-jobs` Pub/Sub topic. The poller does no enrichment itself — it only discovers and enqueues.
 
-**Alternative (lower latency):** Use Debezium on Cloud SQL with PostgreSQL logical replication (`pg_logical`). Every INSERT/UPDATE that transitions a row to `status = 'pending'` emits a CDC event directly to Pub/Sub with sub-second latency. This removes the 30-second polling window but adds operational complexity.
-
-For most workloads the poller is simpler and sufficient.
-
 ---
 
 ## No double-processing
