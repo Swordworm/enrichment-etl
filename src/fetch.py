@@ -4,14 +4,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import aiofiles
-import httpx
 import pandas as pd
 from slugify import slugify
 from sqlalchemy import insert
 from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm.asyncio import tqdm
 
-from src.brightdata import scrape_one
+from src.brightdata import BrightdataClient
 from src.config import config
 from src.db import engine, enrichment_log
 
@@ -21,6 +20,10 @@ _RAW_DIR = Path(__file__).parent.parent / "data" / "raw"
 def has_identifier(val) -> bool:
     # xlsx empty cells = NaN; defensive check also handles literal "null" strings
     return pd.notna(val) and str(val).strip().lower() != "null"
+
+
+def _source_name(client: BrightdataClient) -> str:
+    return "crunchbase" if client.dataset_id == config.cb_dataset_id else "linkedin"
 
 
 def _build_url(row: pd.Series, source: str) -> str:
@@ -50,18 +53,6 @@ async def _save_raw(company_name: str, source: str, data: list) -> None:
         await f.write(json.dumps(data, indent=2))
 
 
-@retry(wait=wait_exponential(min=1, max=30), stop=stop_after_attempt(3))
-async def _fetch_one(
-    client: httpx.AsyncClient, semaphore: asyncio.Semaphore, row: pd.Series, source: str
-) -> None:
-    async with semaphore:
-        dataset_id = config.cb_dataset_id if source == "crunchbase" else config.li_dataset_id
-        url = _build_url(row, source)
-        data = await scrape_one(client, dataset_id, url)
-        await _save_raw(row["name"], source, data)
-        _log_status(row["name"], source, "ok")
-
-
 def _is_cached(company_name: str, source: str) -> bool:
     path = _RAW_DIR / f"{slugify(company_name)}_{source}.json"
     if not path.exists():
@@ -70,28 +61,44 @@ def _is_cached(company_name: str, source: str) -> bool:
     return age_hours < config.raw_ttl_hours
 
 
-async def _fetch_one_safe(
-    client: httpx.AsyncClient, semaphore: asyncio.Semaphore, row: pd.Series, source: str
+@retry(wait=wait_exponential(min=1, max=30), stop=stop_after_attempt(3))
+async def _fetch_one(
+    client: BrightdataClient, semaphore: asyncio.Semaphore, row: pd.Series
 ) -> None:
+    source = _source_name(client)
+    async with semaphore:
+        url = _build_url(row, source)
+        data = await client.scrape(url)
+        await _save_raw(row["name"], source, data)
+        _log_status(row["name"], source, "ok")
+
+
+async def _fetch_one_safe(
+    client: BrightdataClient, semaphore: asyncio.Semaphore, row: pd.Series
+) -> None:
+    source = _source_name(client)
     if _is_cached(row["name"], source):
         return
     try:
-        await _fetch_one(client, semaphore, row, source)
+        await _fetch_one(client, semaphore, row)
     except Exception as exc:
         _log_status(row["name"], source, "failed", str(exc))
 
 
 async def fetch_all(companies_df: pd.DataFrame) -> None:
     semaphore = asyncio.Semaphore(config.fetch_concurrency)
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with (
+        BrightdataClient.crunchbase(config) as cb,
+        BrightdataClient.linkedin(config) as li,
+    ):
         tasks = []
         for _, row in companies_df.iterrows():
             has_cb = has_identifier(row["crunchbase"])
             has_li = has_identifier(row["linkedin"])
             if has_cb:
-                tasks.append(_fetch_one_safe(client, semaphore, row, "crunchbase"))
+                tasks.append(_fetch_one_safe(cb, semaphore, row))
             if has_li:
-                tasks.append(_fetch_one_safe(client, semaphore, row, "linkedin"))
+                tasks.append(_fetch_one_safe(li, semaphore, row))
             if not has_cb and not has_li:
                 _log_status(row["name"], "both", "skipped", "no identifiers")
         await tqdm.gather(*tasks, desc="Fetching")
