@@ -21,7 +21,7 @@ Place `candidate_take_home.xlsx` in `data/input/` (two sheets: `candidate_take_h
 ## Run
 
 ```bash
-uv run python src/main.py
+uv run python -m src.main
 ```
 
 Pipeline steps run in sequence:
@@ -39,7 +39,7 @@ Pipeline steps run in sequence:
 |---|---|
 | `data/enrichment.db` | SQLite — all 9 landing + canonical tables |
 | `data/raw/*.json` | Raw Brightdata API responses (one file per company per source) |
-| `data/output/canonical.csv` | Final canonical dataset (~1000 rows + new companies) |
+| `data/output/canonical.csv` | Final canonical dataset (1050 rows) |
 
 ## Schema
 
