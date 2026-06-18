@@ -1,0 +1,15 @@
+[project]
+name = "enrichment-etl"
+version = "0.1.0"
+description = "Company enrichment ETL: Brightdata (Crunchbase + LinkedIn) → SQLite → canonical CSV"
+requires-python = ">=3.11"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "httpx[http2]>=0.28.1",
+    "pandas>=3.0.3",
+    "python-calamine>=0.7.0",
+    "python-dotenv>=1.2.2",
+    "python-slugify>=8.0.4",
+    "sqlalchemy>=2.0.51",
+    "tenacity>=9.1.4",
+]
