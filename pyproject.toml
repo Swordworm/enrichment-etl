@@ -7,6 +7,7 @@ dependencies = [
     "aiofiles>=25.1.0",
     "httpx[http2]>=0.28.1",
     "pandas>=3.0.3",
+    "pydantic-settings>=2.14.1",
     "python-calamine>=0.7.0",
     "python-dotenv>=1.2.2",
     "python-slugify>=8.0.4",

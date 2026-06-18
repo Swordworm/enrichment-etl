@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pandas as pd
 from sqlalchemy import (
     BigInteger,
@@ -11,11 +9,9 @@ from sqlalchemy import (
     create_engine,
 )
 
-_ROOT = Path(__file__).parent.parent
-DB_PATH = _ROOT / "data" / "enrichment.db"
-XLSX_PATH = _ROOT / "data" / "input" / "candidate_take_home.xlsx"
+from src.config import config
 
-engine = create_engine(f"sqlite:///{DB_PATH}")
+engine = create_engine(f"sqlite:///{config.db_path}")
 metadata = MetaData()
 
 # --- seed tables ---
@@ -155,7 +151,7 @@ li_locations = Table(
 
 
 def init_db() -> None:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    config.db_path.parent.mkdir(parents=True, exist_ok=True)
     metadata.create_all(engine)
     _seed_if_empty()
 
@@ -163,12 +159,12 @@ def init_db() -> None:
 def _seed_if_empty() -> None:
     with engine.connect() as conn:
         if conn.execute(input_companies.select().limit(1)).fetchone() is None:
-            df = pd.read_excel(XLSX_PATH, sheet_name="candidate_take_home", engine="calamine")
+            df = pd.read_excel(config.xlsx_path, sheet_name="candidate_take_home", engine="calamine")
             df.to_sql("input_companies", conn, if_exists="append", index=False)
             conn.commit()
 
         if conn.execute(canonical.select().limit(1)).fetchone() is None:
-            df = pd.read_excel(XLSX_PATH, sheet_name="database", engine="calamine")
+            df = pd.read_excel(config.xlsx_path, sheet_name="database", engine="calamine")
             df = df.astype(str).replace("nan", None)
             df.to_sql("canonical", conn, if_exists="append", index=False)
             conn.commit()
