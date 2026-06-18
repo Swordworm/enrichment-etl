@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 from slugify import slugify
 from sqlalchemy import insert, update
+from tqdm import tqdm
 
 from src.db import canonical, engine
 
@@ -177,7 +178,7 @@ def reconcile_all() -> None:
 
     existing_perms: set = set(canonical_df["guru_permalink"].dropna().tolist())
 
-    for _, row in input_df.iterrows():
+    for _, row in tqdm(input_df.iterrows(), total=len(input_df), desc="Reconciling"):
         cb_slug = _val(row.get("crunchbase"))
         li_handle = _val(row.get("linkedin"))
 

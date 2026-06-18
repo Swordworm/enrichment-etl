@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import delete, insert
+from tqdm import tqdm
 
 from src.db import cb_categories, cb_companies, cb_funding_rounds, cb_locations, engine
 
@@ -10,7 +11,7 @@ _RAW_DIR = Path(__file__).parent.parent / "data" / "raw"
 
 
 def parse_all() -> None:
-    for path in sorted(_RAW_DIR.glob("*_crunchbase.json")):
+    for path in tqdm(sorted(_RAW_DIR.glob("*_crunchbase.json")), desc="Parsing CB"):
         with open(path, encoding="utf-8") as f:
             records = json.load(f)
         if isinstance(records, dict):
