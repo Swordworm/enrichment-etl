@@ -13,6 +13,8 @@ def parse_all() -> None:
     for path in sorted(_RAW_DIR.glob("*_crunchbase.json")):
         with open(path, encoding="utf-8") as f:
             records = json.load(f)
+        if isinstance(records, dict):
+            records = [records]
         for record in records:
             if "error" in record:
                 continue
